@@ -64,7 +64,7 @@ class RealGitHubEndpoint(ghstack.github.GitHubEndpoint):
         # TODO: Leverage self.verify and self.cert, if set.
         request = Request(
             self.graphql_endpoint.format(github_url=self.github_url),
-            data=json.dumps({"query": query, "variables": kwargs}),
+            data=json.dumps({"query": query, "variables": kwargs}).encode('utf8'),
             headers=headers,
         )
         if self.proxy:
@@ -105,7 +105,7 @@ class RealGitHubEndpoint(ghstack.github.GitHubEndpoint):
         # TODO: Leverage self.verify and self.cert, if set.
         request = Request(
             url,
-            data=json.dumps(kwargs),
+            data=json.dumps(kwargs).encode('utf8'),
             headers=headers,
             method=method,
         )
