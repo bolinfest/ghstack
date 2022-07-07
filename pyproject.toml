@@ -19,7 +19,6 @@ ghstack = "ghstack.__main__:main"
 [tool.poetry.dependencies]
 aiohttp = "^3"
 python = "^3.6"
-requests = "^2"
 
 [tool.poetry.dev-dependencies]
 expecttest = "^0.1"

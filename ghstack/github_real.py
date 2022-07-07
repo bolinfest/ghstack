@@ -2,9 +2,8 @@
 
 import json
 import logging
+from urllib.request import urlopen, Request
 from typing import Any, Optional, Sequence, Tuple, Union
-
-import requests
 
 import ghstack.github
 
@@ -57,61 +56,41 @@ class RealGitHubEndpoint(ghstack.github.GitHubEndpoint):
         if self.oauth_token:
             headers['Authorization'] = 'bearer {}'.format(self.oauth_token)
 
-        if self.proxy:
-            proxies = {
-                'http': self.proxy,
-                'https': self.proxy
-            }
-        else:
-            proxies = {}
-
         logging.debug("# POST {}".format(self.graphql_endpoint.format(github_url=self.github_url)))
         logging.debug("Request GraphQL query:\n{}".format(query))
         logging.debug("Request GraphQL variables:\n{}"
                       .format(json.dumps(kwargs, indent=1)))
 
-        resp = requests.post(
+        # TODO: Leverage self.verify and self.cert, if set.
+        request = Request(
             self.graphql_endpoint.format(github_url=self.github_url),
-            json={"query": query, "variables": kwargs},
+            data=json.dumps({"query": query, "variables": kwargs}),
             headers=headers,
-            proxies=proxies,
-            verify=self.verify,
-            cert=self.cert,
         )
+        if self.proxy:
+            request.set_proxy(self.proxy, 'http')
+            request.set_proxy(self.proxy, 'https')
 
-        logging.debug("Response status: {}".format(resp.status_code))
+        with urlopen(request) as resp:
+            logging.debug("Response status: {}".format(resp.status))
 
-        try:
-            r = resp.json()
-        except ValueError:
-            logging.debug("Response body:\n{}".format(resp.text))
-            raise
-        else:
-            pretty_json = json.dumps(r, indent=1)
-            logging.debug("Response JSON:\n{}".format(pretty_json))
-
-        # Actually, this code is dead on the GitHub GraphQL API, because
-        # they seem to always return 200, even in error case (as of
-        # 11/5/2018)
-        try:
-            resp.raise_for_status()
-        except requests.HTTPError:
-            raise RuntimeError(pretty_json)
+            body = resp.read()
+            try:
+                r = json.loads(body)
+            except ValueError:
+                logging.debug("Response body:\n{}".format(body))
+                raise
+            else:
+                pretty_json = json.dumps(r, indent=1)
+                logging.debug("Response JSON:\n{}".format(pretty_json))
 
         if 'errors' in r:
+            pretty_json = json.dumps(r, indent=1)
             raise RuntimeError(pretty_json)
 
         return r
 
     def rest(self, method: str, path: str, **kwargs: Any) -> Any:
-        if self.proxy:
-            proxies = {
-                'http': self.proxy,
-                'https': self.proxy
-            }
-        else:
-            proxies = {}
-
         headers = {
             'Authorization': 'token ' + self.oauth_token,
             'Content-Type': 'application/json',
@@ -123,27 +102,29 @@ class RealGitHubEndpoint(ghstack.github.GitHubEndpoint):
         logging.debug("# {} {}".format(method, url))
         logging.debug("Request body:\n{}".format(json.dumps(kwargs, indent=1)))
 
-        resp: requests.Response = getattr(requests, method)(
+        # TODO: Leverage self.verify and self.cert, if set.
+        request = Request(
             url,
-            json=kwargs,
+            data=json.dumps(kwargs),
             headers=headers,
-            proxies=proxies,
-            verify=self.verify,
-            cert=self.cert,
+            method=method,
         )
+        if self.proxy:
+            request.set_proxy(self.proxy, 'http')
+            request.set_proxy(self.proxy, 'https')
 
-        logging.debug("Response status: {}".format(resp.status_code))
+        with urlopen(request) as resp:
+            status = resp.status
+            logging.debug("Response status: {}".format(status))
 
-        try:
-            r = resp.json()
-        except ValueError:
-            logging.debug("Response body:\n{}".format(r.text))
-            raise
-        else:
-            pretty_json = json.dumps(r, indent=1)
-            logging.debug("Response JSON:\n{}".format(pretty_json))
+            body = resp.read()
+            try:
+                r = json.loads(body)
+            except ValueError:
+                logging.debug("Response body:\n{}".format(body))
+                raise
 
-        if resp.status_code == 404:
+        if status == 404:
             raise RuntimeError("""\
 GitHub raised a 404 error on the request for
 {url}.
@@ -155,9 +136,8 @@ https://{github_url}/settings/tokens and DOUBLE CHECK that you checked
 value.
 """.format(url=url, github_url=self.github_url))
 
-        try:
-            resp.raise_for_status()
-        except requests.HTTPError:
+        if 400 <= status and status < 600:
+            pretty_json = json.dumps(r, indent=1)
             raise RuntimeError(pretty_json)
 
         return r
