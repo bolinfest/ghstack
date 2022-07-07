@@ -105,9 +105,9 @@ class RealGitHubEndpoint(ghstack.github.GitHubEndpoint):
         # TODO: Leverage self.verify and self.cert, if set.
         request = Request(
             url,
-            data=json.dumps(kwargs).encode('utf8'),
+            data=json.dumps(kwargs).encode('utf8') if kwargs is not None else None,
             headers=headers,
-            method=method,
+            method=method.upper(),
         )
         if self.proxy:
             request.set_proxy(self.proxy, 'http')
