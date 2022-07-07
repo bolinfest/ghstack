@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import re
-from typing import Optional
-
-from typing_extensions import TypedDict
+from typing import Optional, TypedDict
 
 import ghstack.github
 import ghstack.shell

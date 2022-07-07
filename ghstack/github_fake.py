@@ -3,10 +3,9 @@
 import os.path
 import re
 from dataclasses import dataclass  # Oof! Python 3.7 only!!
-from typing import Any, Dict, List, NewType, Optional, Sequence, cast
+from typing import Any, Dict, List, NewType, Optional, Sequence, TypedDict, cast
 
 import graphql
-from typing_extensions import TypedDict
 
 import ghstack.github
 import ghstack.shell

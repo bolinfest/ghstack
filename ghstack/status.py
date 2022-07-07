@@ -4,9 +4,9 @@
 import asyncio
 import logging
 import re
+from typing import TypedDict
 
 import aiohttp
-from typing_extensions import TypedDict
 
 import ghstack.circleci
 import ghstack.github
