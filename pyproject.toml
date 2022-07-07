@@ -17,7 +17,6 @@ classifiers = [
 ghstack = "ghstack.__main__:main"
 
 [tool.poetry.dependencies]
-aiohttp = "^3"
 python = "^3.6"
 
 [tool.poetry.dev-dependencies]

@@ -6,13 +6,11 @@ import asyncio
 import ghstack
 import ghstack.action
 import ghstack.checkout
-import ghstack.circleci_real
 import ghstack.config
 import ghstack.github_real
 import ghstack.land
 import ghstack.logs
 import ghstack.rage
-import ghstack.status
 import ghstack.submit
 import ghstack.unlink
 
@@ -75,11 +73,6 @@ def main() -> None:
     action.add_argument('--close', action='store_true',
         help='Close the specified pull request')
 
-    status = subparsers.add_parser('status')
-    # TODO: support number as well
-    status.add_argument('pull_request', metavar='PR',
-        help='GitHub pull request URL to perform action on')
-
     args = parser.parse_args()
 
     if args.cmd is None:
@@ -134,22 +127,6 @@ def main() -> None:
                 sh=sh,
                 close=args.close,
             )
-        elif args.cmd == 'status':
-            # Re-read conf and request circle token if not available
-            # TODO: Restructure this so that we just request
-            # configurations "on-demand" rather than all upfront
-            conf = ghstack.config.read_config(request_circle_token=True)
-            circleci = ghstack.circleci_real.RealCircleCIEndpoint(
-                circle_token=conf.circle_token
-            )
-            # Blegh
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(ghstack.status.main(
-                pull_request=args.pull_request,
-                github=github,
-                circleci=circleci
-            ))
-            loop.close()
         elif args.cmd == 'checkout':
             ghstack.checkout.main(
                 pull_request=args.pull_request,
