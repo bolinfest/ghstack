@@ -58,6 +58,11 @@ class EdenShell(ghstack.shell.Shell):
             # This command maps to multiple shell commands, so we return the
             # result of the last one.
             return self._push_branches(is_force, branch_args)
+        elif match_args(["reset", "--soft", WILDCARD_ARG], args):
+            if len(args) != 3:
+                raise Exception(f"expected exactly 3 args, but was: {args}")
+            revision = args[2]
+            return self._run_eden_command(["checkout", revision])
 
 
         git_args = self._rewrite_args(args)
