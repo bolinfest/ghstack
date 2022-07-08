@@ -152,6 +152,7 @@ def create_shell(conf: ghstack.config.Config) -> ghstack.shell.Shell:
             import ghstack.eden_shell
             return ghstack.eden_shell.EdenShell(conf=conf)
 
+    import ghstack.shell
     return ghstack.shell.Shell()
 
 
