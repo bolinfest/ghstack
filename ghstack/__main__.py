@@ -80,8 +80,8 @@ def main() -> None:
 
     with ghstack.logs.manager(debug=args.debug):
 
-        sh = ghstack.shell.Shell()
         conf = ghstack.config.read_config()
+        sh = create_shell(conf)
         github = ghstack.github_real.RealGitHubEndpoint(
             oauth_token=conf.github_oauth,
             proxy=conf.proxy,
@@ -136,6 +136,23 @@ def main() -> None:
             )
         else:
             raise RuntimeError("Unrecognized command {}".format(args.cmd))
+
+
+def create_shell(conf: ghstack.config.Config) -> ghstack.shell.Shell:
+    import os
+    import pathlib
+    cwd = pathlib.Path(os.getcwd())
+    candidates = [cwd] + list(pathlib.Path(os.getcwd()).parents)
+    for c in candidates:
+        git_dir = c.joinpath('.git')
+        if git_dir.is_dir():
+            break
+        eden_dir = c.joinpath('.hg')
+        if eden_dir.is_dir():
+            import ghstack.eden_shell
+            return ghstack.eden_shell.EdenShell(conf=conf)
+
+    return ghstack.shell.Shell()
 
 
 if __name__ == "__main__":

@@ -122,7 +122,7 @@ def main(*,
          username: str,
          github: ghstack.github.GitHubEndpoint,
          update_fields: bool = False,
-         sh: Optional[ghstack.shell.Shell] = None,
+         sh: ghstack.shell.Shell,
          stack_header: str = STACK_HEADER,
          repo_owner: Optional[str] = None,
          repo_name: Optional[str] = None,
@@ -133,10 +133,6 @@ def main(*,
          github_url: str,
          remote_name: str
          ) -> List[Optional[DiffMeta]]:
-
-    if sh is None:
-        # Use CWD
-        sh = ghstack.shell.Shell()
 
     repo = ghstack.github_utils.get_github_repo_info(
         github=github,
@@ -595,7 +591,7 @@ Since we cannot proceed, ghstack will abort now.
             self.stack_meta.append(None)
             return
 
-        assert ghnum not in self.seen_ghnums
+        assert ghnum not in self.seen_ghnums, f"ghnum {ghnum} already seen"
         self.seen_ghnums.add(ghnum)
 
         new_pull = GitCommitHash(
@@ -1058,8 +1054,12 @@ Since we cannot proceed, ghstack will abort now.
 
 def run_pre_ghstack_hook(sh: ghstack.shell.Shell, base_commit: str, top_commit: str) -> None:
     """If a `pre-ghstack` git hook is configured, run it."""
-    default_hooks_path = os.path.join(sh.git("rev-parse", "--show-toplevel"), ".git/hooks")
-    hooks_path = sh.git("config", "--default", default_hooks_path, "--get", "core.hooksPath")
+    import ghstack.eden_shell
+    if isinstance(sh, ghstack.eden_shell.EdenShell):
+        hooks_path = os.path.join(sh.git_dir, 'hooks')
+    else:
+        default_hooks_path = os.path.join(sh.git("rev-parse", "--show-toplevel"), ".git/hooks")
+        hooks_path = sh.git("config", "--default", default_hooks_path, "--get", "core.hooksPath")
     hook_file = os.path.join(hooks_path, "pre-ghstack")
 
     if not os.path.isfile(hook_file) or not os.access(hook_file, os.X_OK):
